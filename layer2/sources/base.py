@@ -43,6 +43,7 @@ class Source:
     name = "base"
     transport = "http"          # http | browser
     respects_robots = True
+    no_detail_fetch = False     # True = данные уже в parse_list, детали не нужны
     # Насколько часто вообще имеет смысл ходить: это семейный поиск,
     # а не мониторинг рынка. Раз в несколько часов более чем достаточно.
     min_interval_min = 180

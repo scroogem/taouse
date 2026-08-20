@@ -26,6 +26,7 @@ DEPARTMENTS = ["71", "69", "01"]
 class NotairesFr(Source):
     name = "notaires"
     transport = "http"
+    no_detail_fetch = True
 
     def __init__(self, area, fetcher):
         super().__init__(area, fetcher)
@@ -53,6 +54,25 @@ class NotairesFr(Source):
                 continue
             if a.get("typeTransaction") not in ("VENTE", "VNI"):
                 continue
+
+            # Предфильтрация по API данным — без запроса деталей
+            price = a.get("prixAffiche")
+            if price:
+                try:
+                    p = int(float(price))
+                    if p > self.area.max_price * 1.15:
+                        continue
+                except (ValueError, TypeError):
+                    pass
+
+            bedrooms = a.get("nbChambres")
+            if bedrooms is not None:
+                try:
+                    if int(bedrooms) < self.area.min_bedrooms:
+                        continue
+                except (ValueError, TypeError):
+                    pass
+
             detail_url = a.get("urlDetailAnnonceFr", "")
             if not detail_url:
                 continue

@@ -22,7 +22,7 @@ import yaml
 from layer2 import db, fetcher, pipeline
 from layer2.placescore import PlaceMap
 from layer2.sources import (century21, laforet, notaires, orpi,  # noqa: F401
-                            safti)  # регистрируют адаптеры
+                            paruvendu, safti)  # регистрируют адаптеры
 from layer2.sources.base import REGISTRY, SearchArea
 
 ROOT = pathlib.Path(__file__).resolve().parent
@@ -81,7 +81,10 @@ def run_source(name: str, area: SearchArea, pm: PlaceMap, con, limit: int,
 
         for u in urls:
             try:
-                page = fetch.get(u, use_cache=not fresh, prepare=src.prepare_page)
+                if src.no_detail_fetch:
+                    page = ""
+                else:
+                    page = fetch.get(u, use_cache=not fresh, prepare=src.prepare_page)
                 ls = src.parse_listing(page, u)
             except Exception as e:
                 print(f"    ! {u[:70]}: {str(e)[:60]}")
