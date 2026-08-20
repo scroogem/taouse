@@ -21,7 +21,7 @@ import yaml
 
 from layer2 import db, fetcher, pipeline
 from layer2.placescore import PlaceMap
-from layer2.sources import (century21, laforet, orpi,  # noqa: F401
+from layer2.sources import (century21, laforet, notaires, orpi,  # noqa: F401
                             safti)  # регистрируют адаптеры
 from layer2.sources.base import REGISTRY, SearchArea
 
@@ -66,7 +66,11 @@ def run_source(name: str, area: SearchArea, pm: PlaceMap, con, limit: int,
         urls: list[str] = []
         for su in src.search_urls():
             print(f"  обход: {su}")
-            page = fetch.get(su, use_cache=not fresh)
+            try:
+                page = fetch.get(su, use_cache=not fresh)
+            except Exception as e:
+                print(f"    пропуск ({str(e)[:60]})")
+                continue
             stats["pages"] += 1
             got = src.parse_list(page, su)
             print(f"    подходящих ссылок: {len(got)}")
