@@ -19,6 +19,7 @@ STRINGS: dict[str, dict[str, str]] = {
     # --- навигация ---
     "nav_choose":    {"ru": "Выбрать",           "fr": "Choisir"},
     "nav_matches":   {"ru": "Совпадения",        "fr": "Coups de cœur"},
+    "nav_liked":     {"ru": "Мои лайки",         "fr": "Mes coups"},
     "nav_all":       {"ru": "Все дома",          "fr": "Toutes les maisons"},
     "nav_map":       {"ru": "Карта",             "fr": "Carte"},
     "nav_dups":      {"ru": "Дубли",             "fr": "Doublons"},
@@ -70,6 +71,14 @@ STRINGS: dict[str, dict[str, str]] = {
     "plan_visit":    {"ru": "назначить визит",   "fr": "prévoir une visite"},
     "waiting_for":   {"ru": "ждём ответа",       "fr": "en attente de"},
 
+    # --- мои лайки ---
+    "liked_title":   {"ru": "Мои лайки",         "fr": "Mes coups"},
+    "liked_hint":    {"ru": "Дома, которые вам понравились. Если понравится обоим — совпадение.",
+                      "fr": "Maisons que vous avez aimées. Si vous aimez tous les deux, ce sera un coup de cœur."},
+    "no_liked":      {"ru": "Пока ни одного лайка.",
+                      "fr": "Pas encore de coup de cœur."},
+    "liked_by":      {"ru": "понравилось",        "fr": "aimé par"},
+
     # --- список ---
     "sort_place":    {"ru": "по месту",          "fr": "par emplacement"},
     "sort_price":    {"ru": "по цене",           "fr": "par prix"},
@@ -77,7 +86,15 @@ STRINGS: dict[str, dict[str, str]] = {
     "sort_new":      {"ru": "сначала новые",     "fr": "les plus récentes"},
     "sort":          {"ru": "сортировка",        "fr": "trier"},
     "filter_price":  {"ru": "цена до",           "fr": "prix max"},
+    "filter_price_min": {"ru": "цена от",        "fr": "prix min"},
     "filter_score":  {"ru": "место от",          "fr": "emplacement min"},
+    "filter_area_min": {"ru": "площадь от",      "fr": "surface min"},
+    "filter_area_max": {"ru": "площадь до",      "fr": "surface max"},
+    "filter_bedrooms": {"ru": "спален от",       "fr": "chambres min"},
+    "filter_terrace":  {"ru": "терраса",         "fr": "terrasse"},
+    "filter_pool":     {"ru": "бассейн",         "fr": "piscine"},
+    "filter_garage":   {"ru": "гараж",           "fr": "garage"},
+    "filter_reset":    {"ru": "сбросить",        "fr": "réinitialiser"},
     "apply":         {"ru": "применить",         "fr": "appliquer"},
     "houses_n":      {"ru": "домов",             "fr": "maisons"},
     "empty_list":    {"ru": "Пока ничего нет.",  "fr": "Rien pour l'instant."},

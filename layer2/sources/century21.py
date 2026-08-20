@@ -59,14 +59,33 @@ class Century21(Source):
 
         Кнопки «Voir plus» тут нет: снимки подгружаются по одному при нажатии
         стрелки «Image suivante». Без этого в разметке остаётся ровно один кадр.
+        Пробуем несколько селекторов — C21 иногда меняет разметку.
         """
-        nxt = page.query_selector("button[aria-label='Image suivante']")
+        selectors = [
+            "button[aria-label='Image suivante']",
+            "button[aria-label='Image suivante ']",
+            "[data-testid='next-image']",
+            ".slick-next",
+            "button.next",
+            "[class*='carousel'] button[class*='next']",
+            "[class*='gallery'] button[class*='next']",
+            "button:has(svg):has-text('suivante')",
+        ]
+        nxt = None
+        for sel in selectors:
+            try:
+                nxt = page.query_selector(sel)
+                if nxt and nxt.is_visible():
+                    break
+                nxt = None
+            except Exception:
+                nxt = None
         if not nxt:
             return
         for _ in range(14):
             try:
                 nxt.click(timeout=2000)
-                page.wait_for_timeout(450)
+                page.wait_for_timeout(500)
             except Exception:
                 break
 
@@ -171,11 +190,26 @@ def _description(html: str) -> str:
 
 def _images(html: str) -> list[str]:
     seen, urls = set(), []
+    # Сначала ищем по raw URL (jpe?g, webp)
     for u in re.findall(r'https://[^\s"\'<>\\]+\.(?:jpe?g|webp)(?:\?[^\s"\'<>\\]*)?', html, re.I):
         low = u.lower()
-        if any(b in low for b in ("logo", "icon", "avatar", "placeholder", "sprite", "picto")):
+        if any(b in low for b in ("logo", "icon", "avatar", "placeholder", "sprite", "picto",
+                                   "favicon", "badge", "marker")):
             continue
-        key = re.sub(r"[?&](w|h|width|height|size)=[^&]*", "", u)
+        key = re.sub(r"[?&](w|h|width|height|size|crop|quality)=[^&]*", "", u)
+        if key in seen:
+            continue
+        seen.add(key)
+        urls.append(u)
+    # Фоллбэк: <img src="..."> — ловит CDN-ссылки, которые не раскрыты в raw HTML
+    for u in re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', html, re.I):
+        low = u.lower()
+        if not re.search(r'\.(jpe?g|webp|png)(\?|$)', low):
+            continue
+        if any(b in low for b in ("logo", "icon", "avatar", "placeholder", "sprite",
+                                   "picto", "favicon", "badge", "marker")):
+            continue
+        key = re.sub(r"[?&](w|h|width|height|size|crop|quality)=[^&]*", "", u)
         if key in seen:
             continue
         seen.add(key)

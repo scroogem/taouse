@@ -4,7 +4,7 @@
 {% block style %}
 .cols{display:grid;grid-template-columns:1fr;gap:16px}
 @media (min-width:860px){.cols{grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr)}}
-.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:5px}
 .shots img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:11px;background:var(--surface-2)}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px}
 .kv{width:100%;font-size:13.5px;border-collapse:collapse}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ t('liked_title') }} · Taouse{% endblock %}
+{% block content %}
+<h2 class="title">♥ {{ t('liked_title') }}</h2>
+<div class="lead">{{ t('liked_hint') }}</div>
+
+{% if not liked %}<div class="empty">{{ t('no_liked') }}</div>{% endif %}
+
+<div class="grid">
+{% for g in liked %}
+  {% set c = g.canon %}
+  <a class="card" href="/g/{{ g.gid }}" style="border-color:#2f4436">
+    <div class="ph" {% if g.photo %}style="background-image:url('{{ g.photo }}')"{% endif %}>
+      {% if not g.photo %}<div class="noimg">{{ t('no_photo') }}</div>{% endif %}
+      <span class="badge" style="background:var(--like);color:#0d1a12">♥</span>
+      {% if c.place_score is not none %}
+        <span class="chip">{{ t('place_score') }} {{ c.place_score|round|int }}</span>
+      {% endif %}
+    </div>
+    <div class="body">
+      <div class="price">{{ c.price|eur }}</div>
+      <div class="meta">
+        {{ c.area_m2|num(m2) }}{% if c.bedrooms %} · {{ c.bedrooms }} {{ t('bedrooms_short') }}{% endif %}
+        · {{ c.commune_name }}
+      </div>
+      <div class="place" style="color:var(--like)">♥ {{ t('liked_by') }} {{ user.name }}</div>
+    </div>
+  </a>
+{% endfor %}
+</div>
+{% endblock %}

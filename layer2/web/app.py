@@ -52,6 +52,7 @@ def _nav_counts(con, user) -> dict:
     c = voting.counters(con, groups)
     c["dups"] = len(pipeline.duplicate_candidates(con))
     c["mine"] = c.get(user["id"], 0)
+    c["liked"] = len(voting.liked_houses(con, user["id"], groups))
     return c
 
 
@@ -94,7 +95,9 @@ def logout_view():
 # ---------------------------------------------------------------------------
 
 def _groups(con, status: str | None, sort: str, min_score: float, max_price: int,
-            include_hidden: bool = False):
+            include_hidden: bool = False, min_price: int = 0, min_area: float = 0,
+            min_bedrooms: int = 0, terrace: bool = False, pool: bool = False,
+            garage: bool = False):
     rows = con.execute("""
         SELECT l.*, COALESCE(d.group_id, l.key) AS gid
         FROM listing l LEFT JOIN dup_link d ON d.listing_key = l.key
@@ -116,13 +119,25 @@ def _groups(con, status: str | None, sort: str, min_score: float, max_price: int
     out = []
     for gid, members in groups.items():
         canon = max(members, key=lambda m: (m["price"] is not None,
-                                            len(m["description"] or "")))
+                                             len(m["description"] or "")))
         review = db.get_review(con, gid)
         if status and review["status"] != status:
             continue
         if (canon["place_score"] or 0) < min_score:
             continue
         if max_price and canon["price"] and canon["price"] > max_price:
+            continue
+        if min_price and (canon["price"] or 0) < min_price:
+            continue
+        if min_area and (canon["area_m2"] or 0) < min_area:
+            continue
+        if min_bedrooms and (canon["bedrooms"] or 0) < min_bedrooms:
+            continue
+        if terrace and not canon["has_terrace"]:
+            continue
+        if pool and not canon["has_pool"]:
+            continue
+        if garage and not canon["has_garage"]:
             continue
         photo = con.execute(
             "SELECT url FROM photo WHERE listing_key=? ORDER BY ord LIMIT 1",
@@ -153,9 +168,21 @@ def index():
     status = request.args.get("status") or None
     min_score = float(request.args.get("min_score") or 0)
     max_price = int(request.args.get("max_price") or 0)
-    groups = _groups(con, status, sort, min_score, max_price)
+    min_price = int(request.args.get("min_price") or 0)
+    min_area = float(request.args.get("min_area") or 0)
+    min_bedrooms = int(request.args.get("min_bedrooms") or 0)
+    terrace = request.args.get("terrace") == "1"
+    pool = request.args.get("pool") == "1"
+    garage = request.args.get("garage") == "1"
+    groups = _groups(con, status, sort, min_score, max_price,
+                     min_price=min_price, min_area=min_area,
+                     min_bedrooms=min_bedrooms, terrace=terrace,
+                     pool=pool, garage=garage)
     return render_template("index.html", groups=groups, cur_status=status,
-                           sort=sort, min_score=min_score, max_price=max_price)
+                           sort=sort, min_score=min_score, max_price=max_price,
+                           min_price=min_price, min_area=min_area,
+                           min_bedrooms=min_bedrooms, terrace=terrace,
+                           pool=pool, garage=garage)
 
 
 @app.route("/g/<gid>")
@@ -249,6 +276,15 @@ def matches():
     con = _con()
     ms = voting.matches(con, _groups(con, None, "score", 0, 0))
     return render_template("matches.html", matches=ms)
+
+
+@app.route("/liked")
+@auth.required
+def liked_view():
+    con = _con()
+    groups = _groups(con, None, "score", 0, 0)
+    liked = voting.liked_houses(con, g.user["id"], groups)
+    return render_template("liked.html", liked=liked)
 
 
 # ---------------------------------------------------------------------------

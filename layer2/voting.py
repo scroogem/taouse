@@ -108,6 +108,21 @@ def matches(con, groups: list[dict]) -> list[dict]:
     return out
 
 
+def liked_houses(con, person: str, groups: list[dict]) -> list[dict]:
+    """Дома, которые этот человек лайкнул (но мэтч ещё не наступил)."""
+    out = []
+    for g in groups:
+        v = votes_for(con, g["gid"])
+        if v.get(person) == "like":
+            st = status_of(con, g["gid"])
+            if not st["matched"]:
+                g = dict(g)
+                g["vote_status"] = st
+                out.append(g)
+    out.sort(key=lambda g: -(g["canon"]["place_score"] or 0))
+    return out
+
+
 def counters(con, groups: list[dict]) -> dict:
     ppl = people(con)
     res = {"match": 0, "rejected": 0}

@@ -4,15 +4,17 @@
 .stage{max-width:520px;margin:0 auto}
 .head{display:flex;justify-content:space-between;align-items:center;
   font-size:13px;color:var(--dim);margin-bottom:9px}
-.deck{position:relative;touch-action:pan-y}
+.deck{position:relative}
 .deck.dragging{transition:none}
 .deck.animate{transition:transform .28s ease,opacity .28s ease}
 .gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:0;
-  border-radius:var(--radius) var(--radius) 0 0;scrollbar-width:none}
+  border-radius:var(--radius) var(--radius) 0 0;scrollbar-width:none;
+  touch-action:pan-x pinch-zoom}
 .gallery::-webkit-scrollbar{display:none}
 .gallery img{width:100%;flex:0 0 100%;aspect-ratio:4/3;object-fit:cover;
   scroll-snap-align:center;background:var(--surface-2)}
-.dots{position:absolute;top:11px;left:50%;transform:translateX(-50%);display:flex;gap:4px}
+.dots{position:absolute;top:11px;left:50%;transform:translateX(-50%);display:flex;gap:4px;
+  pointer-events:none;z-index:5}
 .dots i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.45)}
 .stamp{position:absolute;top:26%;padding:8px 18px;border-radius:12px;font-size:26px;
   font-weight:800;letter-spacing:.04em;opacity:0;pointer-events:none;border:3px solid}
@@ -20,7 +22,7 @@
 .stamp.no{right:18px;color:var(--pass);border-color:var(--pass);transform:rotate(11deg)}
 .info{background:var(--surface);border:1px solid var(--line);border-top:none;
   border-radius:0 0 var(--radius) var(--radius);padding:13px 15px;
-  display:flex;flex-direction:column;gap:6px}
+  display:flex;flex-direction:column;gap:6px;touch-action:pan-y}
 .row{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
 .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .tag{font-size:12px;padding:3px 9px;border-radius:20px;background:var(--surface-2);
@@ -33,6 +35,11 @@
 .acts .yes{flex:1.5;background:var(--like);border-color:var(--like);color:#0d1a12}
 .score-ring{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--dim)}
 .score-ring b{font-size:17px;color:var(--gold)}
+@media(max-width:400px){
+  .acts button{padding:13px 4px;font-size:14px}
+  .info{padding:11px 12px}
+  .stamp{font-size:22px;top:22%}
+}
 {% endblock %}
 
 {% block content %}
@@ -108,8 +115,8 @@
             <button type="submit" formaction="/g/{{ card.gid }}/hide"
                     formmethod="post" class="meta"
                     onclick="return confirm('{{ t("hide") }}?')"
-                    style="background:none;border:none;padding:2px 4px;font-size:12.5px;
-                           color:var(--dim-2);cursor:pointer">🗑 {{ t('hide_short') }}</button>
+                    style="background:none;border:none;padding:6px 8px;font-size:12.5px;
+                           color:var(--dim-2);cursor:pointer;min-height:44px;min-width:44px">🗑 {{ t('hide_short') }}</button>
           </div>
         </div>
       </div>
@@ -126,13 +133,15 @@
   </div>
 
 <script>
-// Свайп пальцем: влево — «нет», вправо — «нравится». Кнопки остаются для тех,
-// кто предпочитает нажимать, и для десктопа.
+// Свайп пальцем: влево — «нет», вправо — «нравится».
+// Важно: свайп работает ТОЛЬКО на инфо-панели (.info), а не на галерее фото —
+// иначе горизонтальная прокрутка снимков конфликтует с голосованием.
 (function(){
   const deck = document.getElementById('deck');
+  const info = deck.querySelector('.info');
   const form = document.getElementById('voteform');
   const yes = document.getElementById('stampYes'), no = document.getElementById('stampNo');
-  let x0 = null, y0 = null, dx = 0, locked = null;
+  let x0 = null, y0 = null, dx = 0, locked = null, startX = 0, startY = 0;
 
   const send = v => {
     const i = document.createElement('input');
@@ -140,24 +149,28 @@
     form.appendChild(i); form.submit();
   };
 
-  deck.addEventListener('touchstart', e => {
-    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; locked = null;
+  // Свайп начинаем только с инфо-панели
+  const target = info || deck;
+  target.addEventListener('touchstart', e => {
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+    startX = x0; startY = y0;
+    dx = 0; locked = null;
     deck.classList.add('dragging');
   }, {passive:true});
 
-  deck.addEventListener('touchmove', e => {
+  target.addEventListener('touchmove', e => {
     if (x0 === null) return;
     const cx = e.touches[0].clientX - x0, cy = e.touches[0].clientY - y0;
-    // не мешаем вертикальной прокрутке и горизонтальной галерее
-    if (locked === null) locked = Math.abs(cx) > Math.abs(cy) * 1.6 && Math.abs(cx) > 14;
+    if (locked === null) locked = Math.abs(cx) > Math.abs(cy) * 1.4 && Math.abs(cx) > 14;
     if (!locked) return;
+    e.preventDefault();
     dx = cx;
     deck.style.transform = `translateX(${dx}px) rotate(${dx/26}deg)`;
     yes.style.opacity = Math.max(0, Math.min(1, dx/90));
     no.style.opacity = Math.max(0, Math.min(1, -dx/90));
-  }, {passive:true});
+  }, {passive:false});
 
-  deck.addEventListener('touchend', () => {
+  target.addEventListener('touchend', () => {
     deck.classList.remove('dragging');
     if (!locked) { reset(); return; }
     const w = deck.offsetWidth;

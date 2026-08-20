@@ -1,7 +1,20 @@
 {% extends "base.html" %}
 {% block style %}
-.filters{display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
-.filters .field{flex:0 0 auto;min-width:112px}
+.filters{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.filters .field{flex:0 0 auto;min-width:90px}
+.filters .field input,.filters .field select{font-size:13px;padding:7px 9px}
+.filter-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.toggles{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.toggles label{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);
+  background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  padding:5px 11px;cursor:pointer;user-select:none;transition:border-color .15s}
+.toggles label:has(input:checked){border-color:var(--gold);color:var(--ink)}
+.toggles input{display:none}
+@media(max-width:480px){
+  .filters{gap:6px}
+  .filters .field{min-width:80px;flex:1}
+  .filters .field input,.filters .field select{width:100%;font-size:12px;padding:6px 7px}
+}
 {% endblock %}
 {% block content %}
 <h2 class="title">{{ t('nav_all') }}</h2>
@@ -18,13 +31,40 @@
   </label>
   <label class="field">{{ t('filter_score') }}
     <input type="number" name="min_score" value="{{ min_score|int or '' }}" min="0" max="100"
-           inputmode="numeric" style="width:96px">
+           inputmode="numeric">
   </label>
   <label class="field">{{ t('filter_price') }}
     <input type="number" name="max_price" value="{{ max_price or '' }}" step="10000"
-           inputmode="numeric" placeholder="350000" style="width:118px">
+           inputmode="numeric" placeholder="350000">
   </label>
-  <button>{{ t('apply') }}</button>
+  <label class="field">{{ t('filter_price_min') }}
+    <input type="number" name="min_price" value="{{ min_price or '' }}" step="10000"
+           inputmode="numeric">
+  </label>
+  <label class="field">{{ t('filter_area_min') }}
+    <input type="number" name="min_area" value="{{ min_area or '' }}" step="10"
+           inputmode="numeric" placeholder="100">
+  </label>
+  <label class="field">{{ t('filter_bedrooms') }}
+    <input type="number" name="min_bedrooms" value="{{ min_bedrooms or '' }}" min="1" max="10"
+           inputmode="numeric">
+  </label>
+  <div>
+    <div class="toggles">
+      <label><input type="checkbox" name="terrace" value="1" {{ 'checked' if terrace }}>
+        {{ t('filter_terrace') }}</label>
+      <label><input type="checkbox" name="pool" value="1" {{ 'checked' if pool }}>
+        {{ t('filter_pool') }}</label>
+      <label><input type="checkbox" name="garage" value="1" {{ 'checked' if garage }}>
+        {{ t('filter_garage') }}</label>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button>{{ t('apply') }}</button>
+      {% if min_score or max_price or min_price or min_area or min_bedrooms or terrace or pool or garage %}
+        <a href="/?sort={{ sort }}" class="btn">{{ t('filter_reset') }}</a>
+      {% endif %}
+    </div>
+  </div>
 </form>
 
 {% if not groups %}<div class="empty">{{ t('empty_list') }}</div>{% endif %}
@@ -49,6 +89,11 @@
         {% if c.land_m2 %} · {{ t('land') }} {{ c.land_m2|num(m2) }}{% endif %}
       </div>
       <div class="meta" style="color:var(--ink)">{{ c.commune_name or '—' }}</div>
+      <div class="tags" style="margin-top:3px">
+        {% if c.has_terrace %}<span class="tag">terrasse</span>{% endif %}
+        {% if c.has_pool %}<span class="tag">piscine</span>{% endif %}
+        {% if c.has_garage %}<span class="tag">garage</span>{% endif %}
+      </div>
       <div class="place {{ 'approx' if c.geo_precision not in ('housenumber','street') }}">
         {{ place_note(c.place_note, c.zone_rank) }}
       </div>
