@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="{{ lang }}"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#100e0c">
+<title>Taouse</title>
+<style>
+:root{--bg:#100e0c;--surface:#191614;--surface-2:#211d19;--line:#2f2924;
+      --ink:#efe9df;--dim:#9a9086;--dim-2:#6f665d;--gold:#d9a441;--gold-dim:#8a6a2c}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--ink);
+  font:16px/1.5 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  display:grid;place-items:center;padding:22px;
+  background-image:radial-gradient(120% 90% at 50% -10%, #241f18 0%, #100e0c 62%)}
+.box{width:100%;max-width:340px;text-align:center}
+.mark{font-size:40px;font-weight:750;letter-spacing:-.035em;margin-bottom:2px}
+.mark b{color:var(--gold)}
+.sub{color:var(--dim-2);font-size:13px;margin-bottom:26px}
+form{display:flex;flex-direction:column;gap:10px}
+input{font:inherit;font-size:16px;padding:13px 15px;border-radius:13px;width:100%;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink)}
+input:focus{outline:2px solid var(--gold-dim)}
+button{font:inherit;font-size:16px;font-weight:650;padding:13px;border-radius:13px;
+  border:none;background:var(--gold);color:#100e0c;cursor:pointer;margin-top:4px}
+button:active{transform:scale(.98)}
+.err{color:#e08a80;font-size:13px}
+.hint{color:var(--dim-2);font-size:12px;margin-top:18px;line-height:1.6}
+</style>
+</head><body>
+<div class="box">
+  <div class="mark">T<b>ao</b>use</div>
+  <div class="sub">{{ t('tagline') }}</div>
+  <form method="post">
+    <input name="username" placeholder="{{ t('username') }}" autocapitalize="none"
+           autocomplete="username" autofocus required>
+    <input name="password" type="password" placeholder="{{ t('password') }}"
+           autocomplete="current-password" required>
+    {% if error %}<div class="err">{{ t('wrong_login') }}</div>{% endif %}
+    <button>{{ t('login') }}</button>
+  </form>
+  <div class="hint">Maks · Tanya · Sylvain</div>
+</div>
+</body></html>

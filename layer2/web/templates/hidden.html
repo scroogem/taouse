@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ t('hidden_title') }} · Taouse{% endblock %}
+{% block content %}
+<h2 class="title">{{ t('hidden_title') }}</h2>
+<div class="lead">{{ t('hidden_hint') }}</div>
+
+{% if not groups %}<div class="empty">{{ t('no_hidden') }}</div>{% endif %}
+
+<div class="grid">
+{% for g in groups %}
+  {% set c = g.canon %}
+  <div class="card" style="opacity:.72">
+    <a href="/g/{{ g.gid }}">
+      <div class="ph" {% if g.photo %}style="background-image:url('{{ g.photo }}')"{% endif %}>
+        {% if not g.photo %}<div class="noimg">{{ t('no_photo') }}</div>{% endif %}
+      </div>
+    </a>
+    <div class="body">
+      <div class="price">{{ c.price|eur }}</div>
+      <div class="meta">{{ c.area_m2|num(m2) }} · {{ c.commune_name }}</div>
+      <form method="post" action="/g/{{ g.gid }}/unhide" style="margin-top:8px">
+        <button style="width:100%">↩ {{ t('restore') }}</button>
+      </form>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

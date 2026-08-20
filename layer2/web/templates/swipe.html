@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}{{ person.name }} · Taouse{% endblock %}
+{% block style %}
+.stage{max-width:520px;margin:0 auto}
+.head{display:flex;justify-content:space-between;align-items:center;
+  font-size:13px;color:var(--dim);margin-bottom:9px}
+.deck{position:relative;touch-action:pan-y}
+.deck.dragging{transition:none}
+.deck.animate{transition:transform .28s ease,opacity .28s ease}
+.gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:0;
+  border-radius:var(--radius) var(--radius) 0 0;scrollbar-width:none}
+.gallery::-webkit-scrollbar{display:none}
+.gallery img{width:100%;flex:0 0 100%;aspect-ratio:4/3;object-fit:cover;
+  scroll-snap-align:center;background:var(--surface-2)}
+.dots{position:absolute;top:11px;left:50%;transform:translateX(-50%);display:flex;gap:4px}
+.dots i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.45)}
+.stamp{position:absolute;top:26%;padding:8px 18px;border-radius:12px;font-size:26px;
+  font-weight:800;letter-spacing:.04em;opacity:0;pointer-events:none;border:3px solid}
+.stamp.yes{left:18px;color:var(--like);border-color:var(--like);transform:rotate(-11deg)}
+.stamp.no{right:18px;color:var(--pass);border-color:var(--pass);transform:rotate(11deg)}
+.info{background:var(--surface);border:1px solid var(--line);border-top:none;
+  border-radius:0 0 var(--radius) var(--radius);padding:13px 15px;
+  display:flex;flex-direction:column;gap:6px}
+.row{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.tag{font-size:12px;padding:3px 9px;border-radius:20px;background:var(--surface-2);
+  border:1px solid var(--line);color:var(--dim)}
+.desc{font-size:13.5px;color:#c9c0b4;max-height:88px;overflow:auto;line-height:1.45}
+.acts{display:flex;gap:9px;margin-top:13px}
+.acts button{flex:1;padding:15px 8px;font-size:15px;font-weight:600;border-radius:14px}
+.acts .no{color:var(--pass);border-color:#3a2a27}
+.acts .maybe{color:var(--dim)}
+.acts .yes{flex:1.5;background:var(--like);border-color:var(--like);color:#0d1a12}
+.score-ring{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--dim)}
+.score-ring b{font-size:17px;color:var(--gold)}
+{% endblock %}
+
+{% block content %}
+{% if not card %}
+  <div class="empty">
+    <div style="font-size:44px;margin-bottom:8px">{{ person.emoji }}</div>
+    <div style="font-size:17px;color:var(--ink)">{{ t('all_seen') }}</div>
+    <div style="font-size:13px;margin-top:6px">{{ t('all_seen_hint') }}</div>
+  </div>
+{% else %}
+  {% set c = card.canon %}
+  <div class="stage">
+    <div class="head">
+      <span>{{ person.emoji }} {{ person.name }}</span>
+      <span>{{ t('left') }}: {{ left }}</span>
+    </div>
+
+    <form method="post" action="/vote/{{ person.id }}/{{ card.gid }}" id="voteform">
+      <div class="deck" id="deck">
+        <div style="position:relative">
+          {% if detail and detail.canonical.photos %}
+            <div class="gallery">
+              {% for p in detail.canonical.photos[:10] %}
+                <img src="{{ p.url }}" loading="{{ 'eager' if loop.first else 'lazy' }}" alt="">
+              {% endfor %}
+            </div>
+            {% if detail.canonical.photos|length > 1 %}
+              <div class="dots">
+                {% for p in detail.canonical.photos[:10] %}<i></i>{% endfor %}
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="ph" style="border-radius:var(--radius) var(--radius) 0 0">
+              <div class="noimg">{{ t('no_photo') }}</div></div>
+          {% endif %}
+
+          {% if c.place_score is not none %}
+            <span class="badge">{{ t('place_score') }} {{ c.place_score|round|int }}</span>
+          {% endif %}
+          {% if card.n_listings > 1 %}
+            <span class="chip">{{ card.n_listings }} {{ t('listings_n') }}</span>
+          {% endif %}
+          <div class="stamp yes" id="stampYes">{{ t('like')|upper }}</div>
+          <div class="stamp no" id="stampNo">{{ t('pass')|upper }}</div>
+        </div>
+
+        <div class="info">
+          <div class="row">
+            <span class="price">{{ c.price|eur }}</span>
+            {% if c.price and c.area_m2 %}
+              <span class="meta">{{ (c.price / c.area_m2)|round|int }} {{ t('per_m2') }}</span>
+            {% endif %}
+          </div>
+          <div class="row meta">
+            <b style="color:var(--ink);font-weight:600">{{ c.commune_name }}</b>
+            <span>{{ c.area_m2|num(m2) }}</span>
+            {% if c.bedrooms %}<span>{{ c.bedrooms }} {{ t('bedrooms_short') }}</span>{% endif %}
+            {% if c.land_m2 %}<span>{{ t('land') }} {{ c.land_m2|num(m2) }}</span>{% endif %}
+          </div>
+          <div class="tags">
+            {% if c.has_terrace %}<span class="tag">{{ t('terrace') }}</span>{% endif %}
+            {% if c.has_pool %}<span class="tag">{{ t('pool') }}</span>{% endif %}
+            {% if c.has_garage %}<span class="tag">{{ t('garage') }}</span>{% endif %}
+            {% if c.dpe %}<span class="tag">DPE {{ c.dpe }}</span>{% endif %}
+            {% for cc in conditions(c.condition_hint) %}<span class="tag">{{ cc }}</span>{% endfor %}
+          </div>
+          {% if c.description %}<div class="desc">{{ c.description[:520] }}</div>{% endif %}
+          <div class="place {{ 'approx' if c.geo_precision not in ('housenumber','street') }}">
+            {{ place_note(c.place_note, c.zone_rank) }}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <a href="/g/{{ card.gid }}" class="meta" style="color:var(--gold)">{{ t('details') }} →</a>
+            <button type="submit" formaction="/g/{{ card.gid }}/hide"
+                    formmethod="post" class="meta"
+                    onclick="return confirm('{{ t("hide") }}?')"
+                    style="background:none;border:none;padding:2px 4px;font-size:12.5px;
+                           color:var(--dim-2);cursor:pointer">🗑 {{ t('hide_short') }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="acts">
+        <button class="no" name="vote" value="pass">✕ {{ t('pass') }}</button>
+        <button class="maybe" name="vote" value="maybe">{{ t('maybe') }}</button>
+        <button class="yes" name="vote" value="like">♥ {{ t('like') }}</button>
+      </div>
+    </form>
+    <div class="meta" style="text-align:center;margin-top:10px;font-size:12px">
+      {{ t('match_hint') }}
+    </div>
+  </div>
+
+<script>
+// Свайп пальцем: влево — «нет», вправо — «нравится». Кнопки остаются для тех,
+// кто предпочитает нажимать, и для десктопа.
+(function(){
+  const deck = document.getElementById('deck');
+  const form = document.getElementById('voteform');
+  const yes = document.getElementById('stampYes'), no = document.getElementById('stampNo');
+  let x0 = null, y0 = null, dx = 0, locked = null;
+
+  const send = v => {
+    const i = document.createElement('input');
+    i.type = 'hidden'; i.name = 'vote'; i.value = v;
+    form.appendChild(i); form.submit();
+  };
+
+  deck.addEventListener('touchstart', e => {
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; locked = null;
+    deck.classList.add('dragging');
+  }, {passive:true});
+
+  deck.addEventListener('touchmove', e => {
+    if (x0 === null) return;
+    const cx = e.touches[0].clientX - x0, cy = e.touches[0].clientY - y0;
+    // не мешаем вертикальной прокрутке и горизонтальной галерее
+    if (locked === null) locked = Math.abs(cx) > Math.abs(cy) * 1.6 && Math.abs(cx) > 14;
+    if (!locked) return;
+    dx = cx;
+    deck.style.transform = `translateX(${dx}px) rotate(${dx/26}deg)`;
+    yes.style.opacity = Math.max(0, Math.min(1, dx/90));
+    no.style.opacity = Math.max(0, Math.min(1, -dx/90));
+  }, {passive:true});
+
+  deck.addEventListener('touchend', () => {
+    deck.classList.remove('dragging');
+    if (!locked) { reset(); return; }
+    const w = deck.offsetWidth;
+    if (Math.abs(dx) > Math.min(120, w*0.32)) {
+      deck.classList.add('animate');
+      deck.style.transform = `translateX(${dx>0?w:-w}px) rotate(${dx/16}deg)`;
+      deck.style.opacity = 0;
+      setTimeout(() => send(dx > 0 ? 'like' : 'pass'), 170);
+    } else reset();
+  });
+
+  function reset(){
+    deck.classList.add('animate');
+    deck.style.transform = ''; yes.style.opacity = 0; no.style.opacity = 0;
+    setTimeout(() => deck.classList.remove('animate'), 280);
+    x0 = null;
+  }
+
+  // точки-индикаторы галереи
+  const gal = deck.querySelector('.gallery'), dots = deck.querySelectorAll('.dots i');
+  if (gal && dots.length) {
+    const paint = () => {
+      const i = Math.round(gal.scrollLeft / gal.offsetWidth);
+      dots.forEach((d, k) => d.style.background =
+        k === i ? 'var(--gold)' : 'rgba(255,255,255,.45)');
+    };
+    gal.addEventListener('scroll', paint, {passive:true}); paint();
+  }
+})();
+</script>
+{% endif %}
+{% endblock %}

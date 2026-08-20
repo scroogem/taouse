@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% set c = g.canonical %}
+{% block title %}{{ (c.title or '')[:50] }} · Taouse{% endblock %}
+{% block style %}
+.cols{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:860px){.cols{grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr)}}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px}
+.shots img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:11px;background:var(--surface-2)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px}
+.kv{width:100%;font-size:13.5px;border-collapse:collapse}
+.kv td{padding:5px 0;border-bottom:1px solid var(--line)}
+.kv td:first-child{color:var(--dim)}
+.kv td:last-child{text-align:right;font-weight:600}
+.other{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:7px;
+  background:var(--surface);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.vote-state{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.vote-state span{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--line);
+  background:var(--surface-2);color:var(--dim)}
+.vote-state span.like{color:var(--like);border-color:#2f4436}
+.vote-state span.pass{color:var(--pass);border-color:#3a2a27}
+{% endblock %}
+
+{% block content %}
+<a href="javascript:history.back()" class="meta">←</a>
+
+<div class="cols" style="margin-top:8px">
+  <div>
+    {% if c.photos %}
+      <div class="shots">
+        {% for p in c.photos %}
+          <a href="{{ p.url }}" target="_blank"><img src="{{ p.url }}" loading="lazy" alt=""></a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <h2 class="title" style="margin-top:15px">{{ c.title }}</h2>
+    <div style="white-space:pre-wrap;color:#c9c0b4;font-size:14.5px">{{ c.description }}</div>
+
+    {% if g.others %}
+      <h3 style="margin-top:22px;font-size:15px">{{ t('same_house') }}</h3>
+      <div class="lead">{{ t('fees_note') }}</div>
+      {% for o in g.others %}
+        <div class="other">
+          <b>{{ o.price|eur }}</b>
+          <span class="meta">{{ o.agency or o.source }} · {{ o.area_m2|num(m2) }}</span>
+          <a href="{{ o.url }}" target="_blank" style="color:var(--gold);margin-left:auto">
+            {{ t('original') }} →</a>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <aside>
+    <div class="panel">
+      <div style="font-size:26px;font-weight:750;letter-spacing:-.02em">{{ c.price|eur }}</div>
+      {% if g.price_min != g.price_max %}
+        <div class="meta">{{ t('price_range') }}: {{ g.price_min|eur }} — {{ g.price_max|eur }}</div>
+      {% endif %}
+
+      {% if g.vote_status and g.vote_status.votes %}
+        <div class="vote-state" style="margin-top:11px">
+          {% for pp in people %}
+            {% set v = g.vote_status.votes.get(pp.id) %}
+            <span class="{{ v or '' }}">{{ pp.emoji }} {{ pp.name }}:
+              {{ t('like') if v=='like' else t('pass') if v=='pass' else t('maybe') if v=='maybe' else '…' }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <table class="kv" style="margin:12px 0">
+        <tr><td>{{ t('area') }}</td><td>{{ c.area_m2|num(m2) }}</td></tr>
+        <tr><td>{{ t('land') }}</td><td>{{ c.land_m2|num(m2) }}</td></tr>
+        <tr><td>{{ t('rooms') }} / {{ t('bedrooms') }}</td>
+            <td>{{ c.rooms or '—' }} / {{ c.bedrooms or '—' }}</td></tr>
+        <tr><td>{{ t('per_m2') }}</td><td>
+          {% if c.price and c.area_m2 %}{{ (c.price / c.area_m2)|round|int }} €{% else %}—{% endif %}</td></tr>
+        <tr><td>{{ t('terrace') }} / {{ t('pool') }}</td>
+            <td>{{ '✓' if c.has_terrace else '—' }} / {{ '✓' if c.has_pool else '—' }}</td></tr>
+        {% if c.dpe %}<tr><td>DPE</td><td>{{ c.dpe }}</td></tr>{% endif %}
+        {% if c.condition_hint %}<tr><td>{{ t('condition') }}</td><td>{{ conditions(c.condition_hint)|join(", ") }}</td></tr>{% endif %}
+      </table>
+
+      <div style="border-top:1px solid var(--line);padding-top:11px">
+        <div class="meta">{{ t('place_score') }}</div>
+        <div style="font-size:22px;font-weight:700;color:var(--gold)">
+          {{ c.place_score|round|int if c.place_score is not none else '—' }}<span
+            style="font-size:13px;color:var(--dim-2)">/100</span>
+        </div>
+        <div class="meta {{ 'approx' if c.geo_precision not in ('housenumber','street') }}">
+          {{ place_note(c.place_note, c.zone_rank) }}</div>
+      </div>
+
+      {% if user.role == 'voter' %}
+        <form method="post" action="/vote/{{ user.id }}/{{ g.group_id }}"
+              style="display:flex;gap:7px;margin-top:13px">
+          <button name="vote" value="pass" style="flex:1;color:var(--pass)">✕</button>
+          <button name="vote" value="maybe" style="flex:1">{{ t('maybe') }}</button>
+          <button name="vote" value="like" style="flex:1.4;background:var(--like);
+                  border-color:var(--like);color:#0d1a12;font-weight:650">♥ {{ t('like') }}</button>
+        </form>
+      {% endif %}
+
+      <form method="post" action="/g/{{ g.group_id }}/hide" style="margin-top:9px"
+            onsubmit="return confirm('{{ t("hide") }}?')">
+        <button style="width:100%;color:var(--pass);border-color:#3a2a27">
+          🗑 {{ t('hide') }}</button>
+      </form>
+
+      <form method="post" action="/g/{{ g.group_id }}/status" style="margin-top:11px">
+        <textarea name="note" rows="2" placeholder="{{ t('note') }}">{{ g.review.note or '' }}</textarea>
+        <button style="margin-top:7px;width:100%">{{ t('save') }}</button>
+      </form>
+
+      <div style="margin-top:13px;font-size:13.5px;display:flex;flex-direction:column;gap:5px">
+        <a href="{{ c.url }}" target="_blank" style="color:var(--gold)">{{ t('original') }} →</a>
+        {% if c.lat %}
+          <a target="_blank" style="color:var(--gold)"
+             href="https://www.google.com/maps/@{{c.lat}},{{c.lon}},16z/data=!3m1!1e3">
+            {{ t('satellite') }} →</a>
+        {% endif %}
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

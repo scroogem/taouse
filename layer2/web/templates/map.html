@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="title">{{ t('nav_map') }}</h2>
+<div class="lead">
+  {% if lang == 'fr' %}Les annonces sur la carte des emplacements. Les points
+  translucides : seule la commune est connue, pas l'adresse exacte.
+  {% else %}Объявления поверх карты пригодности. Полупрозрачные точки — там, где
+  известна только коммуна: маркер стоит в центре деревни, а не на месте дома.{% endif %}
+</div>
+<div id="map" style="height:74vh;border-radius:var(--radius);border:1px solid var(--line);
+     overflow:hidden"></div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const PTS = {{ points|safe }}, FIELD = {{ field|tojson }}, BOUNDS = {{ bounds|safe }};
+const map = L.map('map').setView([46.3069, 4.8283], 11);
+// тёмная подложка — под общую тему приложения
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  {maxZoom:19, attribution:'© OpenStreetMap © CARTO'}).addTo(map);
+if (FIELD && BOUNDS) {
+  L.imageOverlay(FIELD, [[BOUNDS[0],BOUNDS[1]],[BOUNDS[2],BOUNDS[3]]],
+                 {opacity:.5, interactive:false}).addTo(map);
+}
+const color = s => s>=72?'#1e7882' : s>=60?'#3ca56e' : s>=45?'#b8860b' : '#8c8c8c';
+const eur = v => v ? (v.toLocaleString('ru') + ' €') : '—';
+PTS.forEach(p => {
+  L.circleMarker([p.lat, p.lon], {
+    radius: 8, weight: 2, color: '#fff',
+    fillColor: p.status==='rejected' ? '#bbb' : color(p.score || 0),
+    fillOpacity: p.approx ? 0.55 : 0.95,
+    dashArray: p.approx ? '2,3' : null
+  }).bindPopup(
+     `<b>${eur(p.price)}</b> · ${p.area ? p.area+' м²' : ''}<br>`
+   + `${p.commune || ''}<br>место: <b>${p.score ?? '—'}</b>`
+   + (p.approx ? ' <i>(по коммуне)</i>' : '')
+   + `<br><a href="/g/${p.gid}">→</a>`).addTo(map);
+});
+if (PTS.length) {
+  map.fitBounds(L.latLngBounds(PTS.map(p => [p.lat, p.lon])).pad(0.2));
+}
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Проверка дублей{% endblock %}
+{% macro mini(x) %}
+  <div style="flex:1;min-width:230px">
+    <div style="display:flex;gap:3px;margin-bottom:5px">
+      {% for u in x.photos[:3] %}
+        <img src="{{ u }}" style="width:33%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;background:var(--surface-2)">
+      {% endfor %}
+    </div>
+    <div><b>{{ x.price|eur }}</b> · {{ x.area_m2|num(m2) }}
+      {% if x.land_m2 %} · {{ t('land') }} {{ x.land_m2|num(m2) }}{% endif %}</div>
+    <div class="meta">{{ x.commune_name }}{% if x.agency %} · {{ x.agency }}{% endif %}</div>
+    <div class="meta">{{ (x.title or '')[:70] }}</div>
+    <a href="{{ x.url }}" target="_blank" class="meta" style="color:var(--gold)">оригинал →</a>
+  </div>
+{% endmacro %}
+{% block content %}
+
+<h2 class="title">{{ t('dups_title') }}</h2>
+<div class="lead">{{ t('dups_hint') }}</div>
+
+{% if not candidates %}<div class="meta" style="margin-bottom:22px">Сомнительных пар нет.</div>{% endif %}
+
+{% for c in candidates %}
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px">
+    <div class="meta" style="margin-bottom:8px">{{ c.reason }}</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      {{ mini(c.a) }}
+      <div style="align-self:center;color:var(--dim)">↔</div>
+      {{ mini(c.b) }}
+    </div>
+    <form method="post" action="/duplicates/decide" style="margin-top:10px;display:flex;gap:7px">
+      <input type="hidden" name="a" value="{{ c.a.key }}">
+      <input type="hidden" name="b" value="{{ c.b.key }}">
+      <button name="same" value="1" class="gold">{{ t('same_one') }}</button>
+      <button name="same" value="0">{{ t('different') }}</button>
+    </form>
+  </div>
+{% endfor %}
+
+<h2 class="title" style="margin-top:26px">{{ t('merged_title') }}</h2>
+<div class="meta" style="margin-bottom:14px">
+  Если система ошиблась и объединила разные дома — разделите их здесь.
+</div>
+
+{% if not merged %}<div class="meta">Склеенных групп пока нет.</div>{% endif %}
+
+{% for m in merged %}
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px">
+    <div class="meta" style="margin-bottom:8px">
+      склеено: {{ m.method or 'автоматически' }}
+      {% if m.confidence %} · уверенность {{ (m.confidence*100)|round|int }}%{% endif %}
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      {% for x in m.members %}{{ mini(x) }}{% endfor %}
+    </div>
+    <form method="post" action="/duplicates/decide" style="margin-top:10px;display:flex;gap:7px">
+      <input type="hidden" name="a" value="{{ m.members[0].key }}">
+      <input type="hidden" name="b" value="{{ m.members[1].key }}">
+      <button name="same" value="0">{{ t('split') }}</button>
+      <a href="/g/{{ m.group_id }}"><button type="button">открыть карточку</button></a>
+    </form>
+  </div>
+{% endfor %}
+{% endblock %}

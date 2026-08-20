@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Статистика · Taouse{% endblock %}
+{% block style %}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+.tile .v{font-size:26px;font-weight:750;letter-spacing:-.02em}
+.tile .k{font-size:12px;color:var(--dim);margin-top:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:14px;margin-bottom:14px}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px}
+table.t th{text-align:left;font-weight:500;color:var(--dim);padding:5px 6px;
+  border-bottom:1px solid var(--line);font-size:12px}
+table.t td{padding:7px 6px;border-bottom:1px solid var(--line)}
+.bar{height:7px;border-radius:4px;background:var(--surface-2);overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+{% endblock %}
+
+{% block content %}
+<h2 class="title">Статистика</h2>
+<div class="lead">Видно только тебе — Tanya и Sylvain этой вкладки не видят.</div>
+
+<div class="tiles">
+  <div class="tile"><div class="v">{{ totals.groups }}</div><div class="k">домов</div></div>
+  <div class="tile"><div class="v">{{ totals.listings }}</div><div class="k">объявлений</div></div>
+  <div class="tile"><div class="v">{{ totals.duplicates }}</div><div class="k">склеено дублей</div></div>
+  <div class="tile"><div class="v" style="color:{{ '#d9a441' if totals.candidates else 'inherit' }}">
+    {{ totals.candidates }}</div><div class="k">на ручной проверке</div></div>
+  <div class="tile"><div class="v" style="color:var(--like)">{{ totals.matches }}</div>
+    <div class="k">совпадений</div></div>
+</div>
+
+<div class="panel">
+  <h3 style="margin:0 0 10px;font-size:15px">Кто как голосует</h3>
+  <table class="t">
+    <tr><th>человек</th><th>♥</th><th>?</th><th>✕</th><th>всего</th><th>в очереди</th></tr>
+    {% for id, p in by_person.items() %}
+      <tr>
+        <td>{{ p.emoji }} {{ p.name }}</td>
+        <td style="color:var(--like)">{{ p.like or 0 }}</td>
+        <td>{{ p.maybe or 0 }}</td>
+        <td style="color:var(--pass)">{{ p.pass or 0 }}</td>
+        <td>{{ p.total or 0 }}</td>
+        <td style="color:{{ '#d9a441' if p.pending else 'var(--dim)' }}">{{ p.pending }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="panel">
+  <h3 style="margin:0 0 10px;font-size:15px">Качество мест</h3>
+  {% set total = (dist.green + dist.amber + dist.weak + dist.none) or 1 %}
+  <div class="bar">
+    <i style="width:{{ dist.green/total*100 }}%;background:#3ca56e"></i>
+    <i style="width:{{ dist.amber/total*100 }}%;background:#d9a441"></i>
+    <i style="width:{{ dist.weak/total*100 }}%;background:#8c6a5c"></i>
+    <i style="width:{{ dist.none/total*100 }}%;background:#3a342e"></i>
+  </div>
+  <div class="meta" style="margin-top:8px">
+    <span style="color:#3ca56e">■</span> хорошее место (60+): {{ dist.green }} ·
+    <span style="color:#d9a441">■</span> на грани (45–60): {{ dist.amber }} ·
+    <span style="color:#8c6a5c">■</span> слабое: {{ dist.weak }}
+    {% if dist.none %} · без оценки: {{ dist.none }}{% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <h3 style="margin:0 0 10px;font-size:15px">Источники</h3>
+  <table class="t">
+    <tr><th>источник</th><th>всего</th><th>активных</th><th>средний балл места</th></tr>
+    {% for s in sources %}
+      <tr><td>{{ s.source }}</td><td>{{ s.n }}</td><td>{{ s.act or 0 }}</td>
+        <td>{{ s.avg_score|round(1) if s.avg_score is not none else '—' }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if price_drops %}
+<div class="panel">
+  <h3 style="margin:0 0 4px;font-size:15px">Снизили цену</h3>
+  <div class="lead">Продавец подвинулся — значит, подвинется и дальше.</div>
+  <table class="t">
+    {% for d in price_drops %}
+      <tr>
+        <td><a href="/g/{{ d.gid }}">{{ d.commune_name }} — {{ (d.title or '')[:44] }}</a></td>
+        <td style="color:var(--dim);text-decoration:line-through">{{ d.price_first|eur }}</td>
+        <td style="color:var(--like)">{{ d.price|eur }}</td>
+        <td style="color:var(--like)">−{{ ((d.price_first - d.price))|eur }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}
